@@ -9,11 +9,13 @@ Created on Sun Jul 12 12:00:30 2020
 from numericmethods import *
 from math import *
 import matplotlib.pyplot as plt
-import matplotlib
+
 
 k=1.4
 Me = 2.4
-
+T0 = 486 #K
+T_star = 404.2 #K
+R = 287
 spec_heat = k
 
 def PM(M):
@@ -28,20 +30,21 @@ def ma_finder(pm_angle):
 def mu(M):
     return degrees(asin(1/M))
 
+def temp(Ma):
+    return T0/(1+(k-1)/2*Ma**2)
 
-##### ARRAYS INITIALIZATION
+##### DICTIONARY INITIALIZATION
 
 point={}
 
-
-
 theta_max = PM(Me)/2
-Rt=1
+Rt=0.1014640057401272                    #Throat Radius
 y_axis=0
+
 
 wall_points = [[y_axis, Rt]]
 
-n = 100 # number of characteristic lines
+n = 24 # number of characteristic lines
 delta_theta = theta_max -int(theta_max)
 dt = int(theta_max)/(n)
 
@@ -51,7 +54,7 @@ theta_max_array = []
 for h in range(n+1):
     theta_max_array.append(theta_max-h*dt)
 theta_max_array.append(delta_theta)
-# theta_max_array = np.linspace(theta_max, delta_theta,n+1)
+
 
 changer=1
 ind=0
@@ -59,9 +62,17 @@ indicator=n+1
 old_wall_x = y_axis
 old_wall_y = Rt
 
-plt.figure(figsize=(16,12))
+plt.figure(figsize=(10,6))
+
+#%%%%%%%%%%%%%%%%%% SETTINGS  %%%%%%%%%%%%%%%%%
 
 animation = False
+figure_saving = False
+print_wall = False
+contour_text = False
+temp_text = True
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if animation==True:
     plt.plot(1)
@@ -103,12 +114,12 @@ for i in range(0,n+1):
         print("Axis Points: ",x1,y1)
     
     ind+=1
-    point[ind]={"Theta":theta_1, "Nu":nu_1, "Ma":Ma_1, "Mu":mu_1, "K-":K_1_minus, "K+":K_1_plus, "x":x1, "y":y1}
+    point[ind]={"Theta":theta_1, "Nu":nu_1, "Ma":Ma_1, "Mu":mu_1, "K-":K_1_minus, "K+":K_1_plus, "x":x1, "y":y1, "T":temp(Ma_1)}
     
     if animation==True:
         plt.pause(0.000001)
 
-    plt.plot([x1, y_axis], [y_axis, Rt],'coral')
+    plt.plot([x1, y_axis], [y_axis, Rt],'orange')
 
 
     mid_indicator = ind-indicator
@@ -141,20 +152,18 @@ for i in range(0,n+1):
             new_y = point[ind]['y']+m_alfa_left*(new_x-point[ind]['x'])
             mid_indicator+=1
             
-        plt.plot( [new_x, point[ind]['x']], [new_y,point[ind]['y']],'deepskyblue')
+        plt.plot( [new_x, point[ind]['x']], [new_y,point[ind]['y']],'crimson')
         if animation==True:
             plt.pause(0.000001)
         ind+=1
-        point[ind]={"Theta":new_theta, "Nu":new_nu,"Ma":new_Ma, "Mu":new_mu, "K-":right, "K+":left, "x":new_x, "y":new_y}
-
-        # print(new_x,"\t", new_y)    
+        point[ind]={"Theta":new_theta, "Nu":new_nu,"Ma":new_Ma, "Mu":new_mu, "K-":right, "K+":left, "x":new_x, "y":new_y, "T":temp(new_Ma)}
+  
     
     # WALL POINT
     if i == 0:
         alfa_wall_right = 0.5*(theta_max+point[ind]['Theta'])
         m_wall_right = tan(radians(alfa_wall_right))
     else:
-        # print("MID INDICATOR: ",mid_indicator, point[mid_indicator]['Theta'] )
         alfa_wall_right = 0.5*(point[mid_indicator]['Theta']+point[ind]['Theta'])
         m_wall_right = tan(radians(alfa_wall_right))
     
@@ -167,16 +176,19 @@ for i in range(0,n+1):
     if animation==True:
         plt.pause(0.000001)
 
-    plt.plot( [wall_x, point[ind]['x']], [wall_y,point[ind]['y']],'olive')
+    plt.plot( [wall_x, point[ind]['x']], [wall_y,point[ind]['y']],'forestgreen')
 
     
     ind+=1
-    point[ind]={"Theta":point[ind-1]['Theta'], "Nu":point[ind-1]['Nu'],"Ma":point[ind-1]['Ma'], "Mu":point[ind-1]['Mu'], "K-":right, "K+":left, "x":wall_x, "y":wall_y}
+    point[ind]={"Theta":point[ind-1]['Theta'], "Nu":point[ind-1]['Nu'],"Ma":point[ind-1]['Ma'], "Mu":point[ind-1]['Mu'], "K-":right, "K+":left, "x":wall_x, "y":wall_y, "T":temp(point[ind-1]['Ma'])}
 
     if animation==True:
         plt.pause(0.000001)
     
-    plt.plot( [wall_x, wall_points[-1][0]], [wall_y, wall_points[-1][1]],'m')
+    if i==n:
+        plt.plot( [wall_x, wall_points[-1][0]], [wall_y, wall_points[-1][1]],'indigo', linewidth=4, label='Wall Contour')
+    else:
+        plt.plot( [wall_x, wall_points[-1][0]], [wall_y, wall_points[-1][1]],'indigo', linewidth=4)
 
     
     wall_points.append([wall_x, wall_y])
@@ -186,41 +198,102 @@ for i in range(0,n+1):
     
     print("Wall points: ",wall_x, "\t", wall_y,"\n")
 
-# plt.ylim(0,wall_points[-1][0]/2)
-plt.xlabel("Nozzle Length")
-plt.ylabel("Nozzle Radius")
-plt.title("Minimum Length Nozzle")
+
+plt.xlabel("Nozzle length (m) ",fontsize=16) #$\frac{x}{x0}$
+plt.ylabel("Nozzle radius (m)",fontsize=16) #$\frac{y}{y0}$
+# plt.title("Minimum Length Supersonic Nozzle",fontsize=20)
 
 x_points = np.array([i[0] for i in wall_points])
 y_points = np.array([i[1] for i in wall_points])
 
-centerline,=plt.plot([y_axis, x_points[-1]],[y_axis, y_axis],linewidth=1,color='gray')
-dashes=[50,5,3,5]
-centerline.set_dashes(dashes)
+#''
 
 
-plt.plot((x_points),(-y_points),'m')
+###  REFLECTION
+
+# centerline,=plt.plot([y_axis, x_points[-1]],[y_axis, y_axis],linewidth=1,color='gray')
+# dashes=[50,5,3,5]
+# centerline.set_dashes(dashes)
+#plt.plot((x_points),(-y_points),'m')
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+plt.legend(loc=7, prop={'size': 12})
 
 plt.show()
 
+if figure_saving == True:
+    file_name = "char"+str(n+1)+".pdf"
+    plt.savefig(("plots/"+file_name), format='pdf',dpi=1200)    
+    print("Image file ",file_name," has been generated!")
+   
+if print_wall == True:
+    
+    zw = [0]*len(wall_points)
 
-# zw = [0]*len(wall_points)
+    # UNIT CONVERSION
+    
+    #for m to mm -> mm=1000
+    #    m to m  -> mm=1
+    
+    mm=1 ##m to mm
+    
+    with open("pointss.asc", "w") as o:
+        count  = 0
+        for i in range(len(wall_points)):
+            
+            if i ==len(wall_points):
+                print(wall_points[i][0]*mm," ", wall_points[i][1]*mm," ", zw[i]*mm, file=o)
+            else:
+                print(wall_points[i][0]*mm," ", wall_points[i][1]*mm,  zw[i]*mm, file=o,end = "\n")
+            count+=1
 
-# # UNIT CONVERSION
-
-# #for m to mm -> mm=1000
-# #    m to m  -> mm=1
-
-# mm=1 ##m to mm
-
-# with open("pointss.asc", "w") as o:
-#     count  = 0
-#     for i in range(len(wall_points)):
+if contour_text == True:
+    file_name = "machcontour"+str(n +1) + ".csv"
+    with open(("point_folder/"+file_name), "w") as m:
+        z_axis = 0
+        print('x' , 'y', 'Ma', file=m)
+        print(y_axis, Rt, 1, file=m)
         
-#         if i ==len(wall_points):
-#             print(wall_points[i][0]*mm," ", wall_points[i][1]*mm," ", zw[i]*mm, file=o)
-#         else:
-#             print(wall_points[i][0]*mm," ", wall_points[i][1]*mm,  zw[i]*mm, file=o,end = "\n")
-#         count+=1
+        
+        
+        for i in point:
 
+            if i == len(point):
+                print(point[i]['x'] , point[i]['y'], point[i]['Ma'], file=m)
+            else:
+                print(point[i]['x'] , point[i]['y'], point[i]['Ma'], file=m, end="\n")
+        
+        def last_line(x):
+            return point[len(point)]['y']/(point[len(point)]['x']-point[len(point)-1]['x'])*(-point[len(point)-1]['x']+x)
+        arr = np.linspace(point[len(point)-1]['x'], point[len(point)]['x'],500)
+        for i in arr:    
+            print(i, last_line(i), Me,  file=m)
+        print(x_points[-1], 0, Me, file=m)
+        # print(0, 0, 0.9, file=m)
+        print("---> Mach contour text file saved as ",file_name)
 
+if temp_text == True:
+    file_name = "tempcontour"+str(n +1) + ".csv"
+    with open(("point_folder/"+file_name), "w") as m:
+        z_axis = 0
+        print('x' , 'y', 'T', file=m)
+        print(y_axis, Rt, T_star, file=m)
+        
+        
+        
+        for i in point:
+
+            if i == len(point):
+                print(point[i]['x'] , point[i]['y'], point[i]['T'], file=m)
+            else:
+                print(point[i]['x'] , point[i]['y'], point[i]['T'], file=m, end="\n")
+        
+        def last_line(x):
+            return point[len(point)]['y']/(point[len(point)]['x']-point[len(point)-1]['x'])*(-point[len(point)-1]['x']+x)
+        arr = np.linspace(point[len(point)-1]['x'], point[len(point)]['x'],500)
+        for i in arr:    
+            print(i, last_line(i), 218.4014869888476,  file=m)
+        print(x_points[-1], 0, 218.4014869888476, file=m)
+        # print(0, 0, 0.9, file=m)
+        print("---> Temperature contour text file saved as ",file_name)

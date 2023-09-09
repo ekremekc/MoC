@@ -5,11 +5,9 @@ Created on Sun Jul 12 12:00:30 2020
 @author: ekrem
 """
 
-
-from numericmethods import *
 from math import *
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 k=1.4
 Me = 2.4
@@ -22,10 +20,36 @@ def PM(M):
     ratio = (spec_heat+1)/(spec_heat-1)
     return sqrt(ratio)*degrees(atan(sqrt(1/ratio*(M**2-1))))-degrees(atan(sqrt(M**2-1)))
 
+def my_bisection(f, a, b, tol): 
+    # approximates a root, R, of f bounded 
+    # by a and b to within tolerance 
+    # | f(m) | < tol with m the midpoint 
+    # between a and b Recursive implementation
+    
+    # check if a and b bound a root
+    if np.sign(f(a)) == np.sign(f(b)):
+        raise Exception(
+         "The scalars a and b do not bound a root")
+        
+    # get midpoint
+    m = (a + b)/2
+    
+    if np.abs(f(m)) < tol:
+        # stopping condition, report m as root
+        return m
+    elif np.sign(f(a)) == np.sign(f(m)):
+        # case where m is an improvement on a. 
+        # Make recursive call with a = m
+        return my_bisection(f, m, b, tol)
+    elif np.sign(f(b)) == np.sign(f(m)):
+        # case where m is an improvement on b. 
+        # Make recursive call with b = m
+        return my_bisection(f, a, m, tol)
+
 def ma_finder(pm_angle):
     def zero(M):
         return PM(M)-pm_angle
-    return bisection_method(zero, 1, 10)
+    return my_bisection(zero, 1, 10, 1e-6)
 
 def mu(M):
     return degrees(asin(1/M))
